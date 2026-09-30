@@ -1,0 +1,27 @@
+{
+  "name": "keyflow-next",
+  "private": true,
+  "version": "2.3.1",
+  "type": "module",
+  "description": "Low-latency Persian/English touch typing trainer tuned for EndeavourOS and Arch Linux.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 1420",
+    "build": "vite build",
+    "test": "node tests/run-tests.mjs && node tests/persian-dom-smoke.mjs && node tests/audio-smoke.mjs",
+    "tauri": "cargo tauri",
+    "tauri:dev": "cargo tauri dev",
+    "tauri:build": "cargo tauri build",
+    "check": "npm test && node scripts/module-contract.mjs && node scripts/rust-contract.mjs && node scripts/tauri-version-contract.mjs && node scripts/build-contract.mjs && bash scripts/test-appimage-runtime-audit.sh"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.12.0",
+    "cuelume": "0.2.4"
+  },
+  "devDependencies": {
+    "vite": "7.3.6"
+  },
+  "engines": {
+    "node": ">=22 <23",
+    "npm": ">=10 <12"
+  }
+}
