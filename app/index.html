@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>Keyflow</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="app-shell">
+    <header class="titlebar" data-tauri-drag-region>
+      <div class="brand" data-tauri-drag-region><span class="brand-mark">K</span><strong>Keyflow</strong><span class="native-pill">NATIVE</span></div>
+      <div id="window-context" class="window-context" data-tauri-drag-region>Practice</div>
+      <div class="window-actions">
+        <button id="win-min" aria-label="Minimize">—</button>
+        <button id="win-max" aria-label="Maximize">□</button>
+        <button id="win-close" aria-label="Close">×</button>
+      </div>
+    </header>
+
+    <aside class="sidebar" aria-label="Main navigation">
+      <button data-route="practice" class="nav-button active" title="Practice"><span>⌨</span><small>Practice</small></button>
+      <button data-route="progress" class="nav-button" title="Progress"><span>◫</span><small>Progress</small></button>
+      <button data-route="library" class="nav-button" title="Text library"><span>≡</span><small>Library</small></button>
+      <button data-route="ai" class="nav-button" title="AI studio"><span>✦</span><small>AI</small></button>
+      <button data-route="lab" class="nav-button" title="Training lab"><span>⌘</span><small>Lab</small></button>
+      <div class="nav-spacer"></div>
+      <button data-route="settings" class="nav-button" title="Settings"><span>⚙</span><small>Settings</small></button>
+      <button id="language-quick" class="avatar" title="Switch language">EN</button>
+    </aside>
+
+    <main id="view" tabindex="-1"></main>
+
+    <!-- Explicit resize hit-zones are required for a reliably resizable borderless
+         Tauri window on Linux/Wayland/X11. They call startResizeDragging(). -->
+    <div class="resize-grip resize-n" data-resize="North" aria-hidden="true"></div>
+    <div class="resize-grip resize-e" data-resize="East" aria-hidden="true"></div>
+    <div class="resize-grip resize-s" data-resize="South" aria-hidden="true"></div>
+    <div class="resize-grip resize-w" data-resize="West" aria-hidden="true"></div>
+    <div class="resize-grip resize-ne" data-resize="NorthEast" aria-hidden="true"></div>
+    <div class="resize-grip resize-nw" data-resize="NorthWest" aria-hidden="true"></div>
+    <div class="resize-grip resize-se" data-resize="SouthEast" aria-hidden="true"></div>
+    <div class="resize-grip resize-sw" data-resize="SouthWest" aria-hidden="true"></div>
+  </div>
+  <div id="toast-layer" aria-live="polite"></div>
+  <div id="modal-layer"></div>
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

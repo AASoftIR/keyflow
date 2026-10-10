@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/app/styles.css">
+<script type="importmap">{"imports":{"cuelume":"/tests/cuelume-stub.js"}}</script>
+<style>body{background:#09090a;color:#ddd;padding:30px;font-family:system-ui}.wrap{width:1100px}.typing-text{height:310px;border:1px solid #333;padding:24px;box-sizing:border-box}.smoke-status{margin-top:20px}</style>
+</head><body><div class="wrap"><div id="typing" class="typing-text rtl" dir="rtl"></div><button id="audio-test">Audio test</button><pre id="status" class="smoke-status"></pre></div>
+<script type="module">
+import { TypingEngine } from '/app/core/typing-engine.js';
+import { initAudio, testAudio, getAudioStatus, primeAudioFromGesture } from '/app/audio/audio.js';
+const mapper={observe(){},hintFor(){return null}};
+const engine=new TypingEngine({language:'fa',mapper,onFeedback:()=>{}});
+const host=document.querySelector('#typing');
+engine.mount(host);
+engine.setText('ابزار خوب برای کاری که می تواند بی صدا انجام دهد توجه نمی خواهد. سریع پاسخ می دهد، اطلاعات مهم را نشان می دهد و گزینه های پیچیده را نزدیک نگه می دارد، بدون آن که جلوی کار اصلی را بگیرد.',{title:'smoke'});
+initAudio({soundEnabled:true,soundVolume:.78,keyClickSounds:true,soundProfile:'mechanical'});
+document.addEventListener('keydown',primeAudioFromGesture,{capture:true});
+document.querySelector('#audio-test').onclick=async()=>{const status=await testAudio();document.querySelector('#status').textContent=JSON.stringify(status,null,2);window.__audioStatus=status;};
+window.__smoke={
+  useHighlights:engine.useHighlights,
+  childElements:host.children.length,
+  glyphTextNodes:[...host.querySelector('.typing-glyph-layer').childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).length,
+  text:host.querySelector('.typing-glyph-layer').textContent,
+  computed:{direction:getComputedStyle(host).direction,transform:getComputedStyle(host).transform,unicodeBidi:getComputedStyle(host).unicodeBidi,letterSpacing:getComputedStyle(host).letterSpacing}
+};
+</script></body></html>

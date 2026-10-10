@@ -1,0 +1,30 @@
+[package]
+name = "keyflow-next"
+version = "2.6.0"
+description = "Low-latency Persian/English touch typing trainer"
+authors = ["AASoftIR"]
+edition = "2021"
+
+[lib]
+name = "keyflow_next_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+# Keep the complete Tauri 2.12 release family on one compatible dependency graph.
+# 2.12 contains the upstream Linux AppImage bundler repair for modern Mesa/Wayland.
+tauri-build = { version = "=2.7.0", features = [] }
+tauri-codegen = { version = "=2.7.0", default-features = false }
+tauri-utils = { version = "=2.10.0", default-features = false }
+
+[dependencies]
+# IMPORTANT: exact pins below are intentional. Keep the 2.12 runtime family coherent.
+# Tauri 2.12 also ships the corrected AppImage bundler/linuxdeploy integration.
+tauri = { version = "=2.12.0", features = [] }
+tauri-runtime = { version = "=2.12.0" }
+tauri-runtime-wry = { version = "=2.12.0", default-features = false }
+tauri-utils = { version = "=2.10.0" }
+tauri-macros = { version = "=2.7.0" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "gzip", "brotli", "socks"] }
+url = "2"

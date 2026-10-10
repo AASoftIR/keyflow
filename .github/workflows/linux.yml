@@ -1,0 +1,255 @@
+name: EndeavourOS AppImage
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  appimage:
+    # IMPORTANT: do not put this job in a Docker/container image.
+    # Tauri AppImage packaging launches linuxdeploy/AppImage tooling. A normal
+    # GitHub-hosted Linux VM has the kernel/FUSE environment those tools expect;
+    # a job container does not get /dev/fuse / mount capabilities by default.
+    # The produced artifact is still the distro-neutral AppImage used on
+    # EndeavourOS/Arch; Ubuntu 22.04 is only the compatibility build baseline.
+    runs-on: ubuntu-22.04
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_TERM_COLOR: always
+      CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+      npm_config_audit: "false"
+      npm_config_fund: "false"
+      # Avoid FUSE mounting for AppImage-based helper tools even on the VM.
+      APPIMAGE_EXTRACT_AND_RUN: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Tauri Linux/AppImage prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential curl wget file jq pkg-config \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libxdo-dev libssl-dev \
+            libayatana-appindicator3-dev librsvg2-dev patchelf xdg-utils \
+            libfuse2 \
+            gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+            gstreamer1.0-pulseaudio gstreamer1.0-alsa
+
+          # Regression guard: AppImage packaging must run on the host VM, not
+          # inside a job-level Docker container where linuxdeploy loses the
+          # kernel/device capabilities it needs.
+          if [[ -f /.dockerenv ]]; then
+            echo "::error::AppImage packaging is running inside Docker. Remove job.container."
+            exit 1
+          fi
+
+      - name: Setup Node 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install pinned native Tauri CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Keep Tauri CLI out of npm: this avoids npm optional-native-binding
+          # failures caused by npm optional native bindings being omitted.
+          cargo install tauri-cli --version 2.12.0 --locked
+          cargo tauri --version
+
+      - name: Toolchain versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat /etc/os-release
+          node --version
+          npm --version
+          rustc --version
+          cargo --version
+          cargo tauri --version
+          pkg-config --modversion webkit2gtk-4.1
+          gst-inspect-1.0 --version
+          gst-inspect-1.0 appsrc >/dev/null
+          gst-inspect-1.0 autoaudiosink >/dev/null
+          if gst-inspect-1.0 pulsesink >/dev/null 2>&1; then
+            echo "GStreamer output: pulsesink"
+          elif gst-inspect-1.0 alsasink >/dev/null 2>&1; then
+            echo "GStreamer output: alsasink"
+          else
+            echo "::error::No GStreamer audio sink is available on the build host."
+            exit 1
+          fi
+          node -e 'const m=process.versions.node.split(".")[0]; if (m !== "22") throw new Error(`Expected Node 22 LTS, got ${process.versions.node}`)'
+
+      - name: Install frontend dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf node_modules
+          npm install --no-audit --no-fund
+          if npm ls @tauri-apps/cli --depth=0 >/dev/null 2>&1; then
+            echo "::error::@tauri-apps/cli must not be installed from npm."
+            exit 1
+          fi
+
+      - name: Core + packaging-contract checks
+        run: npm run check
+
+      - name: Resolve and verify the complete Tauri 2.12 Rust stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/tauri-version-contract.mjs
+
+          rm -f src-tauri/Cargo.lock
+          cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
+
+          check_pkg() {
+            local pkg="$1" expected="$2"
+            local line
+            line="$(cargo tree --locked --manifest-path src-tauri/Cargo.toml -p "$pkg" --depth 0 | head -n1)"
+            echo "$line"
+            [[ "$line" == "$pkg v$expected"* ]] || {
+              echo "::error::Resolved $pkg is not the tested $expected (got: $line)"
+              exit 1
+            }
+          }
+
+          check_pkg tauri 2.12.0
+          check_pkg tauri-runtime 2.12.0
+          check_pkg tauri-runtime-wry 2.12.0
+          check_pkg tauri-utils 2.10.0
+          check_pkg tauri-macros 2.7.0
+          check_pkg tauri-codegen 2.7.0
+          check_pkg tauri-build 2.7.0
+          cargo tree --locked --manifest-path src-tauri/Cargo.toml -p wry --depth 0 | grep -Eq '^wry v0\.57\.'
+          cargo tree --locked --manifest-path src-tauri/Cargo.toml -p tao --depth 0 | grep -Eq '^tao v0\.37\.'
+
+          cargo check --locked --manifest-path src-tauri/Cargo.toml
+
+      - name: Build AppImage only
+        shell: bash
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          set -euo pipefail
+          # Native runner is intentional: linuxdeploy is unreliable in a
+          # GitHub job container even after installing fuse2, because the
+          # container lacks the host's /dev/fuse/mount capabilities.
+          cargo tauri build -- --locked
+
+      - name: Stage and validate AppImage
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          mapfile -t IMAGES < <(find src-tauri/target/release/bundle/appimage -maxdepth 1 -type f -name '*.AppImage' -print | sort)
+          if (( ${#IMAGES[@]} != 1 )); then
+            echo "::error::Expected exactly one AppImage, found ${#IMAGES[@]}"
+            printf '%s\n' "${IMAGES[@]:-}"
+            exit 1
+          fi
+
+          IMAGE="${IMAGES[0]}"
+          chmod +x "$IMAGE"
+          file "$IMAGE"
+
+          # Validate the image itself without starting the GUI. This catches a
+          # corrupt/incomplete AppImage before it reaches Serv00.
+          rm -rf .appimage-smoke
+          mkdir .appimage-smoke
+          (
+            cd .appimage-smoke
+            "$GITHUB_WORKSPACE/$IMAGE" --appimage-extract >/dev/null
+            test -x squashfs-root/AppRun
+            test -d squashfs-root/usr/bin
+            "$GITHUB_WORKSPACE/scripts/appimage-runtime-audit.sh" squashfs-root
+          )
+          rm -rf .appimage-smoke
+
+          cp "$IMAGE" release/
+          (cd release && sha256sum *.AppImage > SHA256SUMS.txt)
+          ls -lh release
+          cat release/SHA256SUMS.txt
+
+      - name: Verify AppImage-only packaging
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$(find release -maxdepth 1 -name '*.AppImage' -print -quit)"
+          if find src-tauri/target/release/bundle -type f \( -name '*.deb' -o -name '*.rpm' \) | grep -q .; then
+            echo "::error::Keyflow must emit AppImage only; deb/rpm are forbidden."
+            exit 1
+          fi
+
+      - name: Upload AppImage to AASoft Serv00
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          SERV00_UPLOAD_URL: ${{ secrets.SERV00_UPLOAD_URL }}
+          SERV00_UPLOAD_TOKEN: ${{ secrets.SERV00_UPLOAD_TOKEN }}
+        run: |
+          set -euo pipefail
+          : "${SERV00_UPLOAD_TOKEN:?SERV00_UPLOAD_TOKEN secret is required}"
+          SERV00_UPLOAD_URL="${SERV00_UPLOAD_URL:-https://files.aasoft-com.serv00.net/ci.php}"
+
+          if [[ "$SERV00_UPLOAD_URL" == *\?* ]]; then
+            ENDPOINT="${SERV00_UPLOAD_URL}&api=upload"
+          else
+            ENDPOINT="${SERV00_UPLOAD_URL}?api=upload"
+          fi
+
+          shopt -s nullglob
+          FILES=(release/*.AppImage release/SHA256SUMS.txt)
+          (( ${#FILES[@]} > 0 )) || { echo "::error::No release files to upload"; exit 1; }
+
+          failed=0
+          for FILE in "${FILES[@]}"; do
+            echo "Uploading ${FILE} ($(du -h "$FILE" | cut -f1))"
+            if curl \
+              --fail-with-body \
+              --show-error \
+              --silent \
+              --retry 5 \
+              --retry-delay 3 \
+              --retry-all-errors \
+              --connect-timeout 30 \
+              --max-time 1800 \
+              -X POST \
+              "$ENDPOINT" \
+              -H "Authorization: Bearer ${SERV00_UPLOAD_TOKEN}" \
+              -F "file=@${FILE}" \
+              -F "repository=${GITHUB_REPOSITORY}" \
+              -F "branch=${GITHUB_REF_NAME}" \
+              -F "commit=${GITHUB_SHA}" \
+              -F "run_id=${GITHUB_RUN_ID}" \
+              -F "run_number=${GITHUB_RUN_NUMBER}" \
+              -F "workflow=${GITHUB_WORKFLOW}" \
+              -F "job=${GITHUB_JOB}" \
+              -F "tag=${GITHUB_REF_NAME}"
+            then
+              echo
+              echo "Uploaded: ${FILE}"
+            else
+              echo
+              echo "::error::Serv00 upload failed: ${FILE}"
+              failed=1
+            fi
+          done
+          exit "$failed"
