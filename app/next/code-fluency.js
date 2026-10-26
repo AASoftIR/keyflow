@@ -1,0 +1,8 @@
+export const CODE_WORKOUTS=[
+{id:'python',title:'Python · functions & loops',language:'en',level:3,source:'code',tags:['code','python'],text:'def frequency(words):\n    counts = {}\n    for word in words:\n        key = word.lower()\n        counts[key] = counts.get(key, 0) + 1\n    return sorted(counts.items())\n\nprint(frequency(["Key", "Flow", "key"]))'},
+{id:'javascript',title:'JavaScript · async & arrays',language:'en',level:4,source:'code',tags:['code','javascript'],text:'async function loadUsers(url) {\n  const response = await fetch(url);\n  if (!response.ok) throw new Error("HTTP " + response.status);\n  const users = await response.json();\n  return users.filter((user) => user.active).map((user) => user.name);\n}'},
+{id:'sql',title:'SQL · grouping & sorting',language:'en',level:3,source:'code',tags:['code','sql'],text:'SELECT customer_id, COUNT(*) AS orders, SUM(total) AS revenue\nFROM purchases\nWHERE created_at >= \'2026-01-01\'\nGROUP BY customer_id\nHAVING COUNT(*) > 2\nORDER BY revenue DESC;'},
+{id:'bash',title:'Bash · safe file processing',language:'en',level:4,source:'code',tags:['code','shell'],text:'#!/usr/bin/env bash\nset -euo pipefail\nfor file in "$@"; do\n  if [[ -f "$file" ]]; then\n    printf "Processing: %s\\n" "$file"\n    wc -l -- "$file"\n  fi\ndone'},
+{id:'json',title:'JSON · configuration precision',language:'en',level:2,source:'code',tags:['code','json'],text:'{\n  "name": "keyflow",\n  "version": "3.0.0",\n  "features": ["offline", "typing", "analytics"],\n  "metrics": {\n    "targetWpm": 65,\n    "accuracy": 97.5\n  },\n  "enabled": true\n}'}
+];
+export function codeWorkout(id){const x=CODE_WORKOUTS.find(x=>x.id===id);return x?{...x,id:`code-${x.id}`}:null;}
