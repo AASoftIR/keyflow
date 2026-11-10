@@ -1,0 +1,21 @@
+<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><link rel="stylesheet" href="../app/styles.css"><style>body{background:#090909;margin:15px}#typing-text{width:670px;height:205px;position:relative;border:1px solid #555}</style></head><body><div id="typing-text" class="typing-text rtl"></div><script type="module">
+import {TypingEngine} from '../app/core/typing-engine.js';
+const source=('برنامه برای یادگیری بهتر نیاز به تمرین پیوسته دارد و مهارت با زمان بهتر می شود. ' ).repeat(16);
+const engine=new TypingEngine({language:'fa',strictAccuracy:false});
+engine.setText(source,{id:'persian-long'});
+engine.mount(document.getElementById('typing-text'));
+window.testEngine=engine;
+window.typeThrough=async count=>{
+ const upto=Math.min(engine.chars.length,count);
+ while(engine.index<upto){
+   const current=engine.chars[engine.index];
+   document.dispatchEvent(new KeyboardEvent('keydown',{key:current,bubbles:true,cancelable:true,code:'KeyP'}));
+   if(engine.index%6===0)await new Promise(requestAnimationFrame);
+ }
+ await new Promise(requestAnimationFrame);
+ await new Promise(requestAnimationFrame);
+ const box=engine.container.getBoundingClientRect();
+ const currentRect=engine._rangeFor(Math.min(engine.index,engine.chars.length-1))?.getBoundingClientRect();
+ return {index:engine.index,scrollTop:engine.container.scrollTop,scrollHeight:engine.container.scrollHeight,clientHeight:engine.container.clientHeight,visible:!!currentRect && currentRect.top>=box.top-2 && currentRect.bottom<=box.bottom+2,rect:currentRect?{top:currentRect.top,bottom:currentRect.bottom}:null,view:{top:box.top,bottom:box.bottom}};
+};
+</script></body></html>

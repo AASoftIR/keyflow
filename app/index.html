@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>Keyflow</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/studio.css" />
+</head>
+<body>
+  <div id="app-shell">
+    <header class="titlebar" data-tauri-drag-region>
+      <div class="brand" data-tauri-drag-region>
+        <span class="brand-mark" aria-hidden="true">K<span class="brand-mark-dot"></span></span>
+        <strong class="brand-name">Keyflow<span> Studio</span></strong>
+        <span class="native-pill">DESKTOP</span>
+      </div>
+      <div class="window-center">
+        <span id="window-context" class="window-context" data-tauri-drag-region>Practice</span>
+        <button type="button" id="launch-command" class="command-launch" aria-label="Search actions (Control K)" title="Search all actions (Ctrl+K)">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.7" cy="10.7" r="6.3"/><path d="m15.5 15.5 4.1 4.1"/></svg><span>Search actions</span><kbd>Ctrl K</kbd>
+        </button>
+      </div>
+      <div class="window-actions">
+        <button id="win-min" aria-label="Minimize">—</button>
+        <button id="win-max" aria-label="Maximize">□</button>
+        <button id="win-close" aria-label="Close">×</button>
+      </div>
+    </header>
+
+    <aside class="sidebar" aria-label="Main navigation">
+      <div class="nav-overline">WORKSPACE</div>
+      <button type="button" data-route="practice" class="nav-button active" title="Practice" aria-label="Practice" aria-current="page"><span class="nav-graphic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="M6 9h1m3 0h1m3 0h1m3 0h.1M6 12h1m3 0h1m3 0h1m3 0h.1M8 15h8" stroke-linecap="round"/></svg></span><small>Practice</small></button>
+      <button type="button" data-route="progress" class="nav-button" title="Progress" aria-label="Progress"><span class="nav-graphic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20V11m5 9V6m5 14v-8m5 8V3" stroke-linecap="round"/><path class="svg-accent" d="M3 7.5 9 3l5 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><small>Progress</small></button>
+      <button type="button" data-route="library" class="nav-button" title="Text library" aria-label="Library"><span class="nav-graphic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 6.5C9 4.8 6.2 4.5 3 5.5v14c3.3-1 6.2-.7 9 1 2.8-1.7 5.7-2 9-1v-14c-3.2-1-6-.7-9 1Z" stroke-linejoin="round"/><path class="svg-accent" d="M12 6.5v14m-6-12 3 .4m6 0 3-.4" stroke-linecap="round"/></svg></span><small>Library</small></button>
+      <button type="button" data-route="ai" class="nav-button" title="AI studio" aria-label="AI Studio"><span class="nav-graphic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path class="svg-accent" d="m12 2 2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2L12 2Z" stroke-linejoin="round"/><path d="m19 17 .8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8L19 17Z"/></svg></span><small>AI Studio</small></button>
+      <button type="button" data-route="lab" class="nav-button" title="Training lab" aria-label="Training Lab"><span class="nav-graphic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path class="svg-accent" d="M12 2v7m0 6v7M2 12h7m6 0h7" stroke-linecap="round"/></svg></span><small>Lab</small></button>
+      <div class="nav-spacer"></div>
+      <button type="button" id="nav-new-session" class="nav-action" title="Start a fresh passage" aria-label="Start a fresh passage"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></button>
+      <button type="button" data-route="settings" class="nav-button" title="Settings" aria-label="Settings"><span class="nav-graphic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle class="svg-accent" cx="9" cy="6" r="2.2"/><circle class="svg-accent" cx="16" cy="12" r="2.2"/><circle class="svg-accent" cx="8" cy="18" r="2.2"/></svg></span><small>Settings</small></button>
+      <button type="button" id="language-quick" class="avatar" title="Switch practice language" aria-label="Switch practice language">EN</button>
+    </aside>
+
+    <main id="view" tabindex="-1"></main>
+
+    <!-- Explicit resize hit-zones are required for a reliably resizable borderless
+         Tauri window on Linux/Wayland/X11. They call startResizeDragging(). -->
+    <div class="resize-grip resize-n" data-resize="North" aria-hidden="true"></div>
+    <div class="resize-grip resize-e" data-resize="East" aria-hidden="true"></div>
+    <div class="resize-grip resize-s" data-resize="South" aria-hidden="true"></div>
+    <div class="resize-grip resize-w" data-resize="West" aria-hidden="true"></div>
+    <div class="resize-grip resize-ne" data-resize="NorthEast" aria-hidden="true"></div>
+    <div class="resize-grip resize-nw" data-resize="NorthWest" aria-hidden="true"></div>
+    <div class="resize-grip resize-se" data-resize="SouthEast" aria-hidden="true"></div>
+    <div class="resize-grip resize-sw" data-resize="SouthWest" aria-hidden="true"></div>
+  </div>
+  <div id="toast-layer" aria-live="polite"></div>
+  <div id="modal-layer"></div>
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
